@@ -14,7 +14,7 @@ export default async ({ req, res, log, error }) => {
   if (req.path === "/health") return res.text("Healthy");
 
   // GET all documents
-  if (req.path === "/data" && req.method === "GET") {
+  if (req.path === "/" && req.method === "GET") {
     try {
       const response = await databases.listDocuments(dbId, collId);
       return res.json({ success: true, data: response.documents, total: response.total });
