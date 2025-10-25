@@ -1,13 +1,17 @@
 import { Client, Users, Databases } from 'node-appwrite';
 
 export default async ({ req, res, log, error }) => {
-  // Use the environment from @file_context_0 (.env)
+  // Use env variables directly from @file_context_0 (.env)
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT)
     .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID);
 
   const users = new Users(client);
   const databases = new Databases(client);
+
+  // Convenience: use env variables once at the top
+  const databaseId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
+  const collectionId = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID;
 
   // Mock endpoints
   if (req.path === "/ping") {
@@ -18,16 +22,8 @@ export default async ({ req, res, log, error }) => {
     return res.text("Healthy");
   }
 
-  // Utility to get DB/COLLECTION IDs from env or request
-  // Fallback to env for both
-  const getIds = () => ({
-    databaseId: process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID,
-    collectionId: process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID,
-  });
-
   // GET: Fetch all documents from database
   if (req.path === "/data" && req.method === "GET") {
-    const { databaseId, collectionId } = getIds();
     try {
       const response = await databases.listDocuments(
         databaseId,
@@ -48,7 +44,6 @@ export default async ({ req, res, log, error }) => {
   // GET: Fetch single document by ID
   if (req.path.startsWith("/data/") && req.method === "GET") {
     const documentId = req.path.split("/data/")[1];
-    const { databaseId, collectionId } = getIds();
     try {
       const response = await databases.getDocument(
         databaseId,
@@ -68,7 +63,6 @@ export default async ({ req, res, log, error }) => {
 
   // POST: Create new document
   if (req.path === "/data" && req.method === "POST") {
-    const { databaseId, collectionId } = getIds();
     try {
       const response = await databases.createDocument(
         databaseId,
@@ -91,7 +85,6 @@ export default async ({ req, res, log, error }) => {
   // PUT: Update document by ID
   if (req.path.startsWith("/data/") && req.method === "PUT") {
     const documentId = req.path.split("/data/")[1];
-    const { databaseId, collectionId } = getIds();
     try {
       const response = await databases.updateDocument(
         databaseId,
@@ -114,7 +107,6 @@ export default async ({ req, res, log, error }) => {
   // DELETE: Remove document by ID
   if (req.path.startsWith("/data/") && req.method === "DELETE") {
     const documentId = req.path.split("/data/")[1];
-    const { databaseId, collectionId } = getIds();
     try {
       await databases.deleteDocument(
         databaseId,
