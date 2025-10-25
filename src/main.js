@@ -34,11 +34,19 @@ export default async ({ req, res, log, error }) => {
     }
   }
 
-  // POST create document
+  // POST create documents (array of objects compatible)
   if (req.path === "/data" && req.method === "POST") {
     try {
-      const response = await databases.createDocument(dbId, collId, 'unique()', req.body);
-      return res.json({ success: true, data: response }, 201);
+      const input = Array.isArray(req.body) ? req.body : [req.body];
+
+      // Use Promise.all to create all documents in parallel
+      const results = await Promise.all(
+        input.map(obj =>
+          databases.createDocument(dbId, collId, 'unique()', obj)
+        )
+      );
+
+      return res.json({ success: true, data: results }, 201);
     } catch (err) {
       return res.json({ success: false, error: err.message }, 500);
     }
