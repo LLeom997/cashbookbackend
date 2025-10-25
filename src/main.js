@@ -1,86 +1,65 @@
-import { Client, ID, TablesDB } from 'node-appwrite';
+import { Client, Databases } from 'node-appwrite';
 
 export default async ({ req, res, log, error }) => {
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT)
     .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID);
 
-  const tablesDB = new TablesDB(client);
+  const databases = new Databases(client);
   const dbId = process.env.NEXT_PUBLIC_APPWRITE_DATABASE_ID;
-  const tableId = process.env.NEXT_PUBLIC_APPWRITE_TABLE_ID;
+  const collId = process.env.NEXT_PUBLIC_APPWRITE_COLLECTION_ID;
 
   // Mock endpoints
   if (req.path === "/ping") return res.text("Pong");
   if (req.path === "/health") return res.text("Healthy");
 
-  // GET all rows
+  // GET all documents
   if (req.path === "/data" && req.method === "GET") {
     try {
-      const response = await tablesDB.listRows({
-        databaseId: dbId,
-        tableId: tableId
-      });
-      return res.json({ success: true, data: response.rows, total: response.total });
+      const response = await databases.listDocuments(dbId, collId);
+      return res.json({ success: true, data: response.documents, total: response.total });
     } catch (err) {
       return res.json({ success: false, error: err.message }, 500);
     }
   }
 
-  // GET single row
+  // GET single document
   if (req.path.startsWith("/data/") && req.method === "GET") {
     try {
-      const rowId = req.path.split("/data/")[1];
-      const response = await tablesDB.getRow({
-        databaseId: dbId,
-        tableId: tableId,
-        rowId: rowId
-      });
+      const id = req.path.split("/data/")[1];
+      const response = await databases.getDocument(dbId, collId, id);
       return res.json({ success: true, data: response });
     } catch (err) {
       return res.json({ success: false, error: err.message }, 404);
     }
   }
 
-  // POST create row
+  // POST create document
   if (req.path === "/data" && req.method === "POST") {
     try {
-      const response = await tablesDB.createRow({
-        databaseId: dbId,
-        tableId: tableId,
-        rowId: ID.unique(),
-        data: req.body
-      });
+      const response = await databases.createDocument(dbId, collId, 'unique()', req.body);
       return res.json({ success: true, data: response }, 201);
     } catch (err) {
       return res.json({ success: false, error: err.message }, 500);
     }
   }
 
-  // PUT update row
+  // PUT update document
   if (req.path.startsWith("/data/") && req.method === "PUT") {
     try {
-      const rowId = req.path.split("/data/")[1];
-      const response = await tablesDB.updateRow({
-        databaseId: dbId,
-        tableId: tableId,
-        rowId: rowId,
-        data: req.body
-      });
+      const id = req.path.split("/data/")[1];
+      const response = await databases.updateDocument(dbId, collId, id, req.body);
       return res.json({ success: true, data: response });
     } catch (err) {
       return res.json({ success: false, error: err.message }, 500);
     }
   }
 
-  // DELETE row
+  // DELETE document
   if (req.path.startsWith("/data/") && req.method === "DELETE") {
     try {
-      const rowId = req.path.split("/data/")[1];
-      await tablesDB.deleteRow({
-        databaseId: dbId,
-        tableId: tableId,
-        rowId: rowId
-      });
+      const id = req.path.split("/data/")[1];
+      await databases.deleteDocument(dbId, collId, id);
       return res.json({ success: true });
     } catch (err) {
       return res.json({ success: false, error: err.message }, 500);
