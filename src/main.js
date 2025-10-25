@@ -13,7 +13,7 @@ export default async ({ req, res, log, error }) => {
     cash_in: process.env.NEXT_PUBLIC_APPWRITE_CASH_IN_COLLECTION_ID,
     cash_out: process.env.NEXT_PUBLIC_APPWRITE_CASH_OUT_COLLECTION_ID,
     business: process.env.NEXT_PUBLIC_APPWRITE_BUSINESS_COLLECTION_ID,
-    books: process.env.NEXT_PUBLIC_APPWRITE_BUSINESS_COLLECTION_ID // possible duplicate in env, using as fallback
+    books: process.env.NEXT_PUBLIC_APPWRITE_BOOKS_COLLECTION_ID
   };
 
   // health checks
@@ -48,9 +48,12 @@ export default async ({ req, res, log, error }) => {
         return res.json({ success: true, data: results }, 201);
       }
 
-      // PUT update
-      if (method === "PUT" && path.startsWith(`/${collId}/`)) {
+      // PUT update for /:collId/:id
+      if (method === "PUT" && path.match(new RegExp(`^/${collId}/[^/]+$`))) {
         const id = path.split(`/${collId}/`)[1];
+        if (!id) {
+          return res.json({ success: false, error: "Missing document id in URL" }, 400);
+        }
         const response = await databases.updateDocument(dbId, collections[collId], id, body);
         return res.json({ success: true, data: response });
       }
