@@ -48,12 +48,9 @@ export default async ({ req, res, log, error }) => {
         return res.json({ success: true, data: results }, 201);
       }
 
-      // PUT update for /:collId/:id
-      if (method === "PUT" && path.match(new RegExp(`^/${collId}/[^/]+$`))) {
+      // PUT update
+      if (method === "PUT" && path.startsWith(`/${collId}/`)) {
         const id = path.split(`/${collId}/`)[1];
-        if (!id) {
-          return res.json({ success: false, error: "Missing document id in URL" }, 400);
-        }
         const response = await databases.updateDocument(dbId, collections[collId], id, body);
         return res.json({ success: true, data: response });
       }
