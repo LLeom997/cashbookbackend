@@ -1,6 +1,16 @@
 import { Client, Databases } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
+  // Allow all websites to access this app with CORS headers
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
+  
+  // Handle preflight OPTIONS request
+  if (req.method === "OPTIONS") {
+    return res.text("", 204);
+  }
+
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_APPWRITE_ENDPOINT)
     .setProject(process.env.NEXT_PUBLIC_APPWRITE_PROJECT_ID);
