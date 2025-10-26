@@ -1,14 +1,28 @@
 import { Client, Databases } from "node-appwrite";
 
 export default async ({ req, res, log, error }) => {
-  // Allow all websites to access this app with CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type,Authorization");
-  
+  // A helper to add CORS headers on responses
+  const withCORS = (data, status = 200, contentType = "application/json") => {
+    // `res` likely supports .json, .text, etc., so inject headers into them
+    const headers = {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type,Authorization"
+    };
+    if (contentType) headers["Content-Type"] = contentType;
+
+    // If data is a string, treat as text response, else JSON
+    if (typeof data === "string" && contentType.startsWith("text/"))
+      return res.send(data, status, headers);
+    if (typeof data === "string")
+      return res.send(data, status, headers);
+    return res.json(data, status, headers);
+  };
+
   // Handle preflight OPTIONS request
   if (req.method === "OPTIONS") {
-    return res.text("", 204);
+    // No body, but status 204, content-type text/plain
+    return withCORS("", 204, "text/plain");
   }
 
   const client = new Client()
@@ -27,8 +41,8 @@ export default async ({ req, res, log, error }) => {
   };
 
   // health checks
-  if (req.path === "/ping") return res.text("Pong");
-  if (req.path === "/health") return res.text("Healthy");
+  if (req.path === "/ping") return withCORS("Pong", 200, "text/plain");
+  if (req.path === "/health") return withCORS("Healthy", 200, "text/plain");
 
   // helper function for CRUD operations
   const handleCrud = async (collId) => {
@@ -37,14 +51,14 @@ export default async ({ req, res, log, error }) => {
       // GET all
       if (method === "GET" && path === `/${collId}`) {
         const response = await databases.listDocuments(dbId, collections[collId]);
-        return res.json({ success: true, data: response.documents, total: response.total });
+        return withCORS({ success: true, data: response.documents, total: response.total });
       }
 
       // GET single
       if (method === "GET" && path.startsWith(`/${collId}/`)) {
         const id = path.split(`/${collId}/`)[1];
         const response = await databases.getDocument(dbId, collections[collId], id);
-        return res.json({ success: true, data: response });
+        return withCORS({ success: true, data: response });
       }
 
       // POST create
@@ -55,26 +69,26 @@ export default async ({ req, res, log, error }) => {
             databases.createDocument(dbId, collections[collId], "unique()", obj)
           )
         );
-        return res.json({ success: true, data: results }, 201);
+        return withCORS({ success: true, data: results }, 201);
       }
 
       // PUT update
       if (method === "PUT" && path.startsWith(`/${collId}/`)) {
         const id = path.split(`/${collId}/`)[1];
         const response = await databases.updateDocument(dbId, collections[collId], id, body);
-        return res.json({ success: true, data: response });
+        return withCORS({ success: true, data: response });
       }
 
       // DELETE
       if (method === "DELETE" && path.startsWith(`/${collId}/`)) {
         const id = path.split(`/${collId}/`)[1];
         await databases.deleteDocument(dbId, collections[collId], id);
-        return res.json({ success: true });
+        return withCORS({ success: true });
       }
 
       return null;
     } catch (err) {
-      return res.json({ success: false, error: err.message }, 500);
+      return withCORS({ success: false, error: err.message }, 500);
     }
   };
 
@@ -85,5 +99,5 @@ export default async ({ req, res, log, error }) => {
     if (result) return result;
   }
 
-  return res.json({ success: false, error: "Endpoint not found" }, 404);
+  return withCORS({ success: false, error: "Endpoint not found" }, 404);
 };
